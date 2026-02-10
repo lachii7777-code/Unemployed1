@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For My Favorite ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-pink: #ff85a1;
+            --dark-pink: #f72585;
+            --bg-soft: #fff0f3;
+            --font-main: 'Quicksand', sans-serif;
+            --font-romantic: 'Dancing Script', cursive;
+        }
+                body { 
+            font-family: var(--font-main); 
+            background-image: url('bg.jpg'); /* MAKE SURE THIS FILENAME MATCHES YOUR UPLOAD */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* This adds the "Glass" effect so your text is readable over the photo */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.4); /* White tint */
+            backdrop-filter: blur(8px); /* Blur effect */
+            z-index: -1;
+        }
+
+        /* Add this to make your content boxes look like clean glass cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            border-radius: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+      
+        .romantic-text { font-family: var(--font-romantic); }
+        .hidden { display: none !important; }
+        
+        /* Memory Game Styles */
+        .grid-5x5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 350px; margin: auto; }
+        .tile { aspect-ratio: 1; perspective: 1000px; cursor: pointer; }
+        .tile-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .tile.flipped .tile-inner { transform: rotateY(180deg); }
+        .tile-front, .tile-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 4px; }
+        .tile-front { background: var(--primary-pink); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; }
+        .tile-back { background: white; transform: rotateY(180deg); border: 1px solid var(--primary-pink); }
+        .tile-back img { width: 100%; height: 100%; object-cover: cover; border-radius: 4px; }
+
+        /* Pop-up Styles */
+        #score-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 100; text-align: center; border: 3px solid var(--dark-pink);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <audio id="bgMusic"></audio>
+
+    <div id="phase1" class="text-center animate-fade-in">
+        <h1 class="romantic-text text-5xl mb-6 text-pink-600">Hey You...</h1>
+        <p class="mb-8 text-gray-700 max-w-md px-4">Your personalized intro message here.</p>
+        <button onclick="startExperience()" class="bg-pink-500 text-white px-10 py-4 rounded-full shadow-lg">Begin</button>
+    </div>
+
+    <div id="phase2" class="hidden text-center w-full max-w-sm">
+        <div id="gallery-container">
+            <img id="display-photo" src="" class="rounded-xl shadow-lg w-full h-80 object-cover mb-4">
+            <p id="photo-caption" class="romantic-text text-2xl text-pink-600 mb-6"></p>
+            <button onclick="nextPhoto()" id="gallery-btn" class="bg-pink-400 text-white px-6 py-2 rounded-full">Next Memory</button>
+        </div>
+    </div>
+
+    <div id="phase3" class="hidden text-center w-full">
+        <h2 class="text-xl mb-4 text-pink-600 font-bold">Memory Match</h2>
+        <div id="memory-grid" class="grid-5x5 mb-6"></div>
+        <button onclick="goToHeartCatcher()" class="bg-gray-400 text-white px-6 py-2 rounded-full text-sm">Skip to Next Game</button>
+    </div>
+
+    <div id="phase4" class="hidden text-center w-full">
+        <div class="flex justify-between max-w-xs mx-auto mb-2 px-2 text-pink-600 font-bold">
+            <span>Score: <span id="score">0</span></span>
+            <span>Time: <span id="timer">60</span>s</span>
+        </div>
+        <canvas id="game-canvas" class="rounded-lg shadow-inner"></canvas>
+    </div>
+
+    <div id="score-popup" class="hidden">
+        <h2 class="text-2xl font-bold text-pink-600 mb-2">Game Over!</h2>
+        <p class="text-lg mb-4">You collected <span id="final-score-val" class="font-bold">0</span> hearts!</p>
+        <button onclick="closePopup()" class="bg-pink-500 text-white px-6 py-2 rounded-full">See My Letter</button>
+    </div>
+
+    <div id="phase5" class="hidden text-center animate-fade-in max-w-md px-4">
+        <h1 class="romantic-text text-4xl mb-4 text-pink-600">To My Love,</h1>
+        <div class="bg-white p-6 rounded-2xl shadow-xl text-left leading-relaxed text-gray-800">
+            <p>Write your long paragraph here. Tell her everything you've been wanting to say. This is the grand finale!</p>
+        </div>
+    </div>
+
+    <script>
+        // --- PLAYLIST CONFIG ---
+        const songs = ["song1.mp3", "song2.mp3", "song3.mp3"]; // ADD ALL YOUR FILENAMES HERE
+        const audio = document.getElementById('bgMusic');
+        let currentSongIndex = Math.floor(Math.random() * songs.length);
+
+        function playNextSong() {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            audio.src = songs[currentSongIndex];
+            audio.play();
+        }
+        audio.onended = playNextSong;
+
+        // --- PHOTO GALLERY CONFIG ---
+        const photos = [
+            { src: "photo1.jpg", cap: "The day we first met..." },
+            { src: "photo2.jpg", cap: "Your beautiful smile at dinner" },
+            { src: "photo3.jpg", cap: "My favorite photo of us" }
+        ];
+        let photoIdx = 0;
+
+        function startExperience() {
+            document.getElementById('phase1').classList.add('hidden');
+            document.getElementById('phase2').classList.remove('hidden');
+            audio.src = songs[currentSongIndex];
+            audio.play();
+            updatePhoto();
+        }
+
+        function updatePhoto() {
+            document.getElementById('display-photo').src = photos[photoIdx].src;
+            document.getElementById('photo-caption').innerText = photos[photoIdx].cap;
+        }
+
+        function nextPhoto() {
+            photoIdx++;
+            if (photoIdx < photos.length) {
+                updatePhoto();
+            } else {
+                startMemoryGame();
+            }
+        }
+
+        // --- MEMORY GAME ---
+        function startMemoryGame() {
+            document.getElementById('phase2').classList.add('hidden');
+            document.getElementById('phase3').classList.remove('hidden');
+            
+            // Uses 12 unique images for pairs. Make sure these files exist!
+            const imgFiles = ["p1.jpg", "p2.jpg", "p3.jpg", "p4.jpg", "p5.jpg", "p6.jpg", "p7.jpg", "p8.jpg", "p9.jpg", "p10.jpg", "p11.jpg", "p12.jpg"];
+            let gameSet = [...imgFiles, ...imgFiles, "wildcard.jpg"]; // 25 tiles
+            gameSet.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('memory-grid');
+            let flipped = [];
+
+            gameSet.forEach((img) => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.innerHTML = `<div class="tile-inner"><div class="tile-front">❤️</div><div class="tile-back"><img src="${img}"></div></div>`;
+                tile.onclick = () => {
+                    if (flipped.length < 2 && !tile.classList.contains('flipped')) {
+                        tile.classList.add('flipped');
+                        flipped.push({tile, img});
+                        if (flipped.length === 2) {
+                            setTimeout(() => {
+                                if (flipped[0].img !== flipped[1].img) {
+                                    flipped[0].tile.classList.remove('flipped');
+                                    flipped[1].tile.classList.remove('flipped');
+                                }
+                                flipped = [];
+                            }, 800);
+                        }
+                    }
+                };
+                grid.appendChild(tile);
+            });
+        }
+
+        function goToHeartCatcher() {
+            document.getElementById('phase3').classList.add('hidden');
+            document.getElementById('phase4').classList.remove('hidden');
+            initHeartGame();
+        }
+
+        // --- HEART CATCHER ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0, timeLeft = 60, hearts = [], lastGolden = 0;
+        let basket = { x: 0, width: 80, height: 12 };
+
+        function initHeartGame() {
+            canvas.width = 350; canvas.height = 400;
+            basket.x = 135;
+            
+            const handleMove = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                basket.x = Math.max(0, Math.min(canvas.width - basket.width, x - basket.width/2));
+            };
+            canvas.addEventListener('mousemove', handleMove);
+            canvas.addEventListener('touchmove', handleMove);
+
+            const timerInt = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInt);
+                    showFinalScore();
+                }
+                // Spawn Golden Heart every 10 seconds
+                if (timeLeft % 10 === 0 && timeLeft !== 60) spawnHeart(true);
+            }, 1000);
+            updateHeartGame();
+        }
+
+        function spawnHeart(isGolden = false) {
+            hearts.push({
+                x: Math.random() * (canvas.width - 20),
+                y: -20,
+                speed: isGolden ? 1.5 : 2, // Slower speed
+                golden: isGolden
+            });
+        }
+
+        function updateHeartGame() {
+            if (timeLeft <= 0) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Spawn regular hearts less frequently
+            if (Math.random() < 0.03) spawnHeart(false);
+
+            ctx.fillStyle = '#f72585';
+            ctx.beginPath();
+            ctx.roundRect(basket.x, canvas.height-30, basket.width, basket.height, 10);
+            ctx.fill();
+
+            hearts.forEach((h, i) => {
+                h.y += h.speed;
+                ctx.font = h.golden ? "30px serif" : "20px serif";
+                ctx.fillText(h.golden ? "⭐" : "❤️", h.x, h.y);
+
+                if (h.y > canvas.height - 30 && h.y < canvas.height && h.x > basket.x && h.x < basket.x + basket.width) {
+                    score += h.golden ? 10 : 1;
+                    document.getElementById('score').innerText = score;
+                    hearts.splice(i, 1);
+                }
+            });
+            requestAnimationFrame(updateHeartGame);
+        }
+
+        function showFinalScore() {
+            document.getElementById('final-score-val').innerText = score;
+            document.getElementById('score-popup').classList.remove('hidden');
+        }
+
+        function closePopup() {
+            document.getElementById('score-popup').classList.add('hidden');
+            document.getElementById('phase4').classList.add('hidden');
+            document.getElementById('phase5').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
