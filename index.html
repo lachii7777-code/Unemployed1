@@ -257,7 +257,7 @@
             hearts.forEach((h, i) => {
                 h.y += h.speed;
                 ctx.font = h.golden ? "30px serif" : "20px serif";
-                ctx.fillText(h.golden ? "⭐" : "❤️", h.x, h.y);
+                ctx.fillText(h.golden ? "💝" : "❤️", h.x, h.y);
 
                 if (h.y > canvas.height - 30 && h.y < canvas.height && h.x > basket.x && h.x < basket.x + basket.width) {
                     score += h.golden ? 10 : 1;
