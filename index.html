@@ -36,8 +36,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.4); /* White tint */
-            backdrop-filter: blur(8px); /* Blur effect */
+            background: rgba(255, 255, 255, 0.2); /* White tint */
+            backdrop-filter: blur(2px); /* Blur effect */
             z-index: -1;
         }
 
@@ -74,7 +74,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <audio id="bgMusic"></audio>
+    <audio id="bgMusic" preload="auto"></audio>
 
     <div id="phase1" class="text-center animate-fade-in">
         <h1 class="romantic-text text-5xl mb-6 text-pink-600">Heyy Amnaa</h1>
@@ -123,17 +123,36 @@ love you.</p>
     </div>
 
     <script>
-        // --- PLAYLIST CONFIG ---
-        const songs = ["songmyfav4.mp3", "songfav1.mp3", "songmine2.mp3", "songevery3.mp3", "song5be.mp3"]; // ADD ALL YOUR FILENAMES HERE
-        const audio = document.getElementById('bgMusic');
-        let currentSongIndex = Math.floor(Math.random() * songs.length);
+        // --- IMPROVED PLAYLIST CONFIG ---
+const songs = ["songmyfav4.mp3", "songfav1.mp3", "songevery3.mp3", "songmine2.mp3", "song5be.mp3"]; 
+const audio = document.getElementById('bgMusic');
+let currentSongIndex = Math.floor(Math.random() * songs.length);
 
-        function playNextSong() {
-            currentSongIndex = (currentSongIndex + 1) % songs.length;
-            audio.src = songs[currentSongIndex];
-            audio.play();
-        }
-        audio.onended = playNextSong;
+function playSong(index) {
+    audio.src = songs[index];
+    audio.load(); // Forces the browser to find the file
+    audio.play().catch(e => {
+        console.log("Playback interrupted. Waiting for user interaction.");
+    });
+}
+
+function playNextSong() {
+    currentSongIndex = (currentSongIndex + 1) % songs.length;
+    playSong(currentSongIndex);
+}
+
+// This is the "Safety Trigger"
+audio.onended = function() {
+    playNextSong();
+};
+
+// Update your startExperience function to use this:
+function startExperience() {
+    document.getElementById('phase1').classList.add('hidden');
+    document.getElementById('phase2').classList.remove('hidden');
+    playSong(currentSongIndex); // Use the new playSong function
+}
+        
 
         // --- PHOTO GALLERY CONFIG ---
         const photos = [
